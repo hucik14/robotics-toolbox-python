@@ -1,7 +1,7 @@
 # PoERobot
 import numpy as np
 from spatialmath import Twist3, SE3
-from spatialmath.base import skew
+from spatialmath.base import skew, trnorm
 from roboticstoolbox.robot import Link, Robot, ET
 
 
@@ -203,6 +203,9 @@ class PoERobot(Robot):
         return T.inv().Ad() @ J
 
     def ets(self):
+        """
+        Generate ETS from robot screw axis and tool frame.
+        """
 
         # initialize partial transformations between joints from base to ee
         full_tf = [SE3()] * (self.n_joints + 2)
@@ -248,7 +251,7 @@ class PoERobot(Robot):
             f_tf[0:3, 2] = a_vec
             f_tf[0:3, 3] = t_vec
 
-            full_tf[i+1] = SE3(f_tf)
+            full_tf[i + 1] = SE3(trnorm(f_tf))
 
         # add end-effector frame (base -> ee transform)
         full_tf[-1] = self.T0
@@ -272,10 +275,6 @@ class PoERobot(Robot):
             if tf.t[2] != 0.0:
                 et.append(ET.tz(tf.t[2]))
 
-            if num != 0 and num != (self.n_joints + 1):  # if not base or tool frame
-                if np.linalg.norm(self.links[num - 1].S.w) == 0:  # if prismatic, assign joint variable
-                    et.append(ET.tz())
-
             # RPY parameters, due to RPY convention the order of multiplication is reversed
             rpy = tf.rpy()
 
@@ -291,6 +290,8 @@ class PoERobot(Robot):
             if num != 0 and num != (self.n_joints + 1):  # if not base or tool frame
                 if np.linalg.norm(self.links[num - 1].S.w) != 0:  # if revolute, assign joint variable
                     et.append(ET.Rz())
+                else:  # if prismatic, assign joint variable
+                    et.append(ET.tz())
 
 
         ets = np.prod(et)
