@@ -602,32 +602,6 @@ class TestRobot(unittest.TestCase):
     #     r = rp.models.DH.Puma560()
     #     r.dynamics()
 
-    # def test_linkcolormap(self):
-    #     r = rp.models.DH.Puma560()
-    #     r.linkcolormap()
-
-    #     r.linkcolormap(["r", "r", "r", "r", "r", "r"])
-
-    # # def test_tool_error(self):
-    # #     r = rp.models.DH.Puma560()
-
-    # #     with self.assertRaises(ValueError):
-    # #         r.tool = 2
-
-    # def test_links(self):
-
-    #     l0 = rp.PrismaticDH()
-    #     l1 = rp.RevoluteDH()
-    #     l2 = rp.PrismaticDH()
-    #     l3 = rp.RevoluteDH()
-
-    #     r0 = rp.DHRobot([l0, l1, l2, l3])
-
-    #     self.assertIs(r0[0], l0)
-    #     self.assertIs(r0[1], l1)
-    #     self.assertIs(r0[2], l2)
-    #     self.assertIs(r0[3], l3)
-
     # def test_ikine_LM(self):
     #     panda = rp.models.DH.Panda()
     #     q = np.array([0, -0.3, 0, -2.2, 0, 2.0, np.pi / 4])
@@ -749,7 +723,7 @@ class TestRobot(unittest.TestCase):
     #     self.assertTrue(sol3.success)
     #     nt.assert_array_almost_equal(
     #         T.A - puma.fkine(sol3.q).A, np.zeros((4, 4)), decimal=4
-    # )
+    #     )
 
     # def test_plot_swift(self):
     #     r = rp.models.Panda()

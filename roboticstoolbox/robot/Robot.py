@@ -34,24 +34,16 @@ from spatialmath.base.argcheck import (
 )
 
 from ansitable import ANSITable, Column
-from swift import Swift
-from spatialgeometry import Shape, CollisionShape, Cylinder, SceneNode
-
-from spatialmath import (
-    SE3,
-    SpatialAcceleration,
-    SpatialVelocity,
-    SpatialInertia,
-    SpatialForce,
-)
-import spatialmath.base as smb
-from spatialmath.base.argcheck import (
-    isvector,
-    getvector,
-    getmatrix,
-    getunit,
-    verifymatrix,
-)
+from roboticstoolbox.backends.PyPlot import PyPlot
+from roboticstoolbox.backends.PyPlot.EllipsePlot import EllipsePlot
+from roboticstoolbox.robot.Dynamics import DynamicsMixin
+from roboticstoolbox.robot.ETS import ETS
+from typing import Union, Dict, Tuple
+from spatialgeometry import Shape
+from roboticstoolbox.fknm import Robot_link_T
+from functools import lru_cache
+from spatialgeometry import SceneNode
+from roboticstoolbox.robot.Link import BaseLink, Link
 
 from fknm import Robot_link_T
 import roboticstoolbox as rtb
