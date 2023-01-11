@@ -261,38 +261,32 @@ class PoERobot(Robot):
         for i in reversed(range(1, self.n_joints + 2)):
             partial_tf[i] = full_tf[i - 1].inv() * full_tf[i]
 
-
         # prepare ET sequence
         et = []
         for num, tf in enumerate(partial_tf):
             # XYZ parameters
             if tf.t[0] != 0.0:
                 et.append(ET.tx(tf.t[0]))
-
             if tf.t[1] != 0.0:
                 et.append(ET.ty(tf.t[1]))
-
             if tf.t[2] != 0.0:
                 et.append(ET.tz(tf.t[2]))
 
             # RPY parameters, due to RPY convention the order of multiplication is reversed
             rpy = tf.rpy()
-
             if rpy[2] != 0.0:
                 et.append(ET.Rz(rpy[2]))
-
             if rpy[1] != 0.0:
                 et.append(ET.Ry(rpy[1]))
-
             if rpy[0] != 0.0:
                 et.append(ET.Rx(rpy[0]))
 
-            if num != 0 and num != (self.n_joints + 1):  # if not base or tool frame
-                if np.linalg.norm(self.links[num - 1].S.w) != 0:  # if revolute, assign joint variable
+            # assign joint variable, if the frame is not base or tool frame
+            if num != 0 and num != (self.n_joints + 1):
+                if np.linalg.norm(self.links[num - 1].S.w) != 0:  # if revolute
                     et.append(ET.Rz())
-                else:  # if prismatic, assign joint variable
+                else:  # if prismatic
                     et.append(ET.tz())
-
 
         ets = np.prod(et)
         return ets
