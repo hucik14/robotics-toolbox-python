@@ -1,8 +1,8 @@
 # PoERobot
 import numpy as np
 from spatialmath import Twist3, SE3
-from spatialmath.base import skew
-from roboticstoolbox.robot import Link, Robot
+from spatialmath.base import skew, trnorm
+from roboticstoolbox.robot import Link, Robot, ET
 
 
 class PoELink(Link):
@@ -94,7 +94,8 @@ class PoERobot(Robot):
         :seealso: :class:`PoEPrismatic` :class:`PoERevolute`
         """
 
-        self._n = len(links)
+        self._n = len(links)  # it is somewhere overwritten
+        self.n_joints = len(links)
 
         super().__init__(links, **kwargs)
         self.T0 = T0
@@ -202,7 +203,93 @@ class PoERobot(Robot):
         return T.inv().Ad() @ J
 
     def ets(self):
-        return NotImplemented
+        """
+        Generate ETS from robot screw axis and tool frame.
+        """
+
+        # initialize partial transformations between joints from base to ee
+        full_tf = [SE3()] * (self.n_joints + 2)
+
+        # get transforms from screws, related to base frame
+        for i in range(self.n_joints):
+            # get screw axis components
+            w = self.links[i].S.w
+            v = self.links[i].S.v
+
+            # get point on the screw axis
+            if np.linalg.norm(w) == 0.0:  # test prismatic joint (test "isrevolute" gives False even though the class is PoERevolute)
+                # switch the directional vector components
+                w = v
+
+                # point on screw axis
+                t_vec = full_tf[i].t
+
+                # get vector of the x axis
+                n_vec = full_tf[i].n
+            else:  # is revolute
+                # get the nearest point of the screw axis closest to the origin
+                principalpoint = np.cross(w, v)
+
+                # get vector of the x-axis
+                n_vec = principalpoint - full_tf[i].t
+                if round(np.linalg.norm(n_vec), 2) == 0.0:  # the points are coincident
+                    n_vec = full_tf[i].n
+                else:
+                    n_vec = n_vec / np.linalg.norm(n_vec)
+
+                # get lambda parameter on the point on screw line, nearest to previous partial tf origin
+                lam = np.dot(full_tf[i].t - principalpoint, w)
+
+                t_vec = principalpoint + (lam * w)
+
+            o_vec = np.cross(w, n_vec)
+            a_vec = w
+
+            f_tf = np.eye(4)
+            f_tf[0:3, 0] = n_vec
+            f_tf[0:3, 1] = o_vec
+            f_tf[0:3, 2] = a_vec
+            f_tf[0:3, 3] = t_vec
+
+            full_tf[i + 1] = SE3(trnorm(f_tf))
+
+        # add end-effector frame (base -> ee transform)
+        full_tf[-1] = self.T0
+
+        # get partial transforms
+        partial_tf = [SE3()] * (self.n_joints + 2)
+        for i in reversed(range(1, self.n_joints + 2)):
+            partial_tf[i] = full_tf[i - 1].inv() * full_tf[i]
+
+        # prepare ET sequence
+        et = []
+        for num, tf in enumerate(partial_tf):
+            # XYZ parameters
+            if tf.t[0] != 0.0:
+                et.append(ET.tx(tf.t[0]))
+            if tf.t[1] != 0.0:
+                et.append(ET.ty(tf.t[1]))
+            if tf.t[2] != 0.0:
+                et.append(ET.tz(tf.t[2]))
+
+            # RPY parameters, due to RPY convention the order of multiplication is reversed
+            rpy = tf.rpy()
+            if rpy[2] != 0.0:
+                et.append(ET.Rz(rpy[2]))
+            if rpy[1] != 0.0:
+                et.append(ET.Ry(rpy[1]))
+            if rpy[0] != 0.0:
+                et.append(ET.Rx(rpy[0]))
+
+            # assign joint variable, if the frame is not base or tool frame
+            if num != 0 and num != (self.n_joints + 1):
+                if np.linalg.norm(self.links[num - 1].S.w) != 0:  # if revolute
+                    et.append(ET.Rz())
+                else:  # if prismatic
+                    et.append(ET.tz())
+
+        ets = np.prod(et)
+        return ets
 
 if __name__ == "__main__":  # pragma nocover
 
