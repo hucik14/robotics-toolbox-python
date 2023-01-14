@@ -1458,6 +1458,40 @@ class ERobot(BaseERobot):
 
         return urdf.elinks, urdf.name, urdf_string, file_path
 
+    def generate_URDF(self):
+
+        rpyxyz = zeros((self.n + 2, 6))
+        joint_types = zeros(self.n)
+        for i, link in enumerate(self.elinks):
+            for et in link.ets:
+                if et.eta is None:
+                    if et.axis == 'Rz':
+                        joint_types[i] = 1
+                else:
+                    if et.axis == 'Rz':
+                        rpyxyz[i, 0] = et.eta
+                    elif et.axis == 'Ry':
+                        rpyxyz[i, 1] = et.eta
+                    elif et.axis == 'Rx':
+                        rpyxyz[i, 2] = et.eta
+                    elif et.axis == 'tx':
+                        rpyxyz[i, 3] = et.eta
+                    elif et.axis == 'ty':
+                        rpyxyz[i, 4] = et.eta
+                    elif et.axis == 'tz':
+                        rpyxyz[i, 5] = et.eta
+
+        print(rpyxyz)
+        print(joint_types)
+
+        with open('readme.txt', 'w') as f:
+            f.write('Create a new text file!')
+            f.close()
+
+        pass
+
+
+
     # --------------------------------------------------------------------- #
 
     def get_path(self, end=None, start=None):
