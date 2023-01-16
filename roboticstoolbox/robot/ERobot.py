@@ -1469,23 +1469,115 @@ class ERobot(BaseERobot):
                         joint_types[i] = 1
                 else:
                     if et.axis == 'Rz':
-                        rpyxyz[i, 0] = et.eta
+                        rpyxyz[i + 1, 0] = et.eta
                     elif et.axis == 'Ry':
-                        rpyxyz[i, 1] = et.eta
+                        rpyxyz[i + 1, 1] = et.eta
                     elif et.axis == 'Rx':
-                        rpyxyz[i, 2] = et.eta
+                        rpyxyz[i + 1, 2] = et.eta
                     elif et.axis == 'tx':
-                        rpyxyz[i, 3] = et.eta
+                        rpyxyz[i + 1, 3] = et.eta
                     elif et.axis == 'ty':
-                        rpyxyz[i, 4] = et.eta
+                        rpyxyz[i + 1, 4] = et.eta
                     elif et.axis == 'tz':
-                        rpyxyz[i, 5] = et.eta
+                        rpyxyz[i + 1, 5] = et.eta
 
         print(rpyxyz)
         print(joint_types)
 
-        with open('readme.txt', 'w') as f:
-            f.write('Create a new text file!')
+        # table of RPYXYZ parameters
+        base_rpyxyz = rpyxyz[0, :]
+        joints_rpyxyz = rpyxyz[1:self.n + 1, :]
+        tool_rpyxyz = rpyxyz[self.n + 1, :]
+
+        with open('robot.urdf', 'w') as f:
+
+            # write header
+            f.write('<?xml version="1.0" ?>\n<robot name="robotRTB">\n\n')
+
+            # joints
+            f.write('<!-- KINEMATICS (joints) -->\n')
+
+            # write base
+            f.write('  <joint name="world_joint" type="fixed">\n')
+            f.write('    <parent link="world"/>\n')
+            f.write('    <child link="base_link"/>\n')
+
+            f.write('    <origin rpy="{roll} {pitch} {yaw}" xyz="{x} {y} {z}"/>\n'.format(
+                roll=base_rpyxyz[0],
+                pitch=base_rpyxyz[1],
+                yaw=base_rpyxyz[2],
+                x=base_rpyxyz[3],
+                y=base_rpyxyz[4],
+                z=base_rpyxyz[5]))
+            f.write('  </joint>\n')
+
+            # 1st joint
+            if joint_types[0] == 1.0:
+                f.write('  <joint name="joint1" type="continuous">\n')
+            else:
+                f.write('  <joint name="joint1" type="prismatic">\n')
+                f.write('    <limit effort="10" velocity="1.0" lower="0.0" upper="1.0"/>\n')
+
+            f.write('    <parent link="base_link"/>\n')
+            f.write('    <child link="link1"/>\n')
+            f.write('    <origin rpy="{roll} {pitch} {yaw}" xyz="{x} {y} {z}"/>\n'.format(
+                roll=joints_rpyxyz[0, 0],
+                pitch=joints_rpyxyz[0, 1],
+                yaw=joints_rpyxyz[0, 2],
+                x=joints_rpyxyz[0, 3],
+                y=joints_rpyxyz[0, 4],
+                z=joints_rpyxyz[0, 5]))
+            f.write('    <axis xyz="0 0 1"/>\n')
+            f.write('  </joint>\n')
+
+            for i in range(1, self.n):
+                if joint_types[i] == 1.0:
+                    f.write('  <joint name="joint{}" type="continuous">\n'.format(i + 1))
+                else:
+                    f.write('  <joint name="joint{}" type="prismatic">\n'.format(i + 1))
+                    f.write('    <limit effort="10" velocity="1.0" lower="0.0" upper="1.0"/>\n')
+
+                f.write('    <parent link="link{}"/>\n'.format(i))
+                f.write('    <child link="link{}"/>\n'.format(i + 1))
+                f.write('    <origin rpy="{roll} {pitch} {yaw}" xyz="{x} {y} {z}"/>\n'.format(
+                    roll=joints_rpyxyz[i, 0],
+                    pitch=joints_rpyxyz[i, 1],
+                    yaw=joints_rpyxyz[i, 2],
+                    x=joints_rpyxyz[i, 3],
+                    y=joints_rpyxyz[i, 4],
+                    z=joints_rpyxyz[i, 5]))
+                f.write('    <axis xyz="0 0 1"/>\n')
+                f.write('  </joint>\n')
+
+            # end effector
+            f.write('  <joint name="ee_joint" type="fixed">\n')
+            f.write('    <parent link="link{}"/>\n'.format(self.n))
+            f.write('    <child link="ee_link"/>\n')
+            f.write('    <origin rpy="{roll} {pitch} {yaw}" xyz="{x} {y} {z}"/>\n'.format(
+                roll=tool_rpyxyz[0],
+                pitch=tool_rpyxyz[1],
+                yaw=tool_rpyxyz[2],
+                x=tool_rpyxyz[3],
+                y=tool_rpyxyz[4],
+                z=tool_rpyxyz[5]))
+            f.write('  </joint>\n')
+
+            # links
+            f.write('\n<!-- DYNAMICS (links) -->\n')
+
+            # write world and base links
+            f.write('  <link name="world"/>\n')
+            f.write('  <link name="base_link"/>\n')
+
+            # write links
+            for i in range(self.n):
+                f.write('  <link name="link{}"/>\n'.format(i + 1))
+
+            # end-effector link
+            f.write('  <link name="ee_link"/>\n')
+
+            f.write('\n</robot>\n')
+            # close file
             f.close()
 
         pass
