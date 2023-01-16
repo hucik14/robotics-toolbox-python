@@ -1459,29 +1459,17 @@ class ERobot(BaseERobot):
         return urdf.elinks, urdf.name, urdf_string, file_path
 
     def generate_URDF(self):
-
         rpyxyz = zeros((self.n + 2, 6))
         joint_types = zeros(self.n)
         for i, link in enumerate(self.elinks):
+            tr = SE3(link.Ts)
+            rpyxyz[i + 1, 0:3] = tr.rpy()
+            rpyxyz[i + 1, 3:6] = tr.t
+
             for et in link.ets:
                 if et.eta is None:
                     if et.axis == 'Rz':
                         joint_types[i] = 1
-                else:
-                    if et.axis == 'Rx':
-                        rpyxyz[i + 1, 0] = et.eta
-                    elif et.axis == 'Ry':
-                        rpyxyz[i + 1, 1] = et.eta
-                    elif et.axis == 'Rz':
-                        rpyxyz[i + 1, 2] = et.eta
-                    elif et.axis == 'tx':
-                        rpyxyz[i + 1, 3] = et.eta
-                    elif et.axis == 'ty':
-                        rpyxyz[i + 1, 4] = et.eta
-                    elif et.axis == 'tz':
-                        rpyxyz[i + 1, 5] = et.eta
-
-        print(rpyxyz)
 
         # prepare RPYXYZ parameters
         base_rpyxyz = rpyxyz[0, :]
