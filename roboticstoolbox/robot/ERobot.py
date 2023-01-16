@@ -1468,11 +1468,11 @@ class ERobot(BaseERobot):
                     if et.axis == 'Rz':
                         joint_types[i] = 1
                 else:
-                    if et.axis == 'Rz':
+                    if et.axis == 'Rx':
                         rpyxyz[i + 1, 0] = et.eta
                     elif et.axis == 'Ry':
                         rpyxyz[i + 1, 1] = et.eta
-                    elif et.axis == 'Rx':
+                    elif et.axis == 'Rz':
                         rpyxyz[i + 1, 2] = et.eta
                     elif et.axis == 'tx':
                         rpyxyz[i + 1, 3] = et.eta
@@ -1482,15 +1482,13 @@ class ERobot(BaseERobot):
                         rpyxyz[i + 1, 5] = et.eta
 
         print(rpyxyz)
-        print(joint_types)
 
-        # table of RPYXYZ parameters
+        # prepare RPYXYZ parameters
         base_rpyxyz = rpyxyz[0, :]
         joints_rpyxyz = rpyxyz[1:self.n + 1, :]
         tool_rpyxyz = rpyxyz[self.n + 1, :]
 
         with open('robot.urdf', 'w') as f:
-
             # write header
             f.write('<?xml version="1.0" ?>\n<robot name="robotRTB">\n\n')
 
@@ -1511,7 +1509,7 @@ class ERobot(BaseERobot):
                 z=base_rpyxyz[5]))
             f.write('  </joint>\n')
 
-            # 1st joint
+            # 1st joint - written separately due to base_link parent
             if joint_types[0] == 1.0:
                 f.write('  <joint name="joint1" type="continuous">\n')
             else:
