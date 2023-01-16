@@ -1472,14 +1472,15 @@ class ERobot(BaseERobot):
             elif link.isprismatic:
                 joint_types[i] = 0.0
 
-            if link.v.axis == 'Rz' or link.v.axis == 'tz':
-                joint_axis.append("0 0 1")
-            elif link.v.axis == 'Ry' or link.v.axis == 'ty':
-                joint_axis.append("0 1 0")
-            elif link.v.axis == 'Rx' or link.v.axis == 'tx':
-                joint_axis.append("1 0 0")
-            else:
+            if link.v is None:
                 joint_axis.append("")
+            else:
+                if link.v.axis == 'Rz' or link.v.axis == 'tz':
+                    joint_axis.append("0 0 1")
+                elif link.v.axis == 'Ry' or link.v.axis == 'ty':
+                    joint_axis.append("0 1 0")
+                elif link.v.axis == 'Rx' or link.v.axis == 'tx':
+                    joint_axis.append("1 0 0")
 
         # prepare RPYXYZ parameters
         base_rpyxyz = rpyxyz[0, :]
