@@ -1460,17 +1460,15 @@ class ERobot(BaseERobot):
 
     def generate_URDF(self):
         rpyxyz = zeros((self.n + 2, 6))
-        joint_types = zeros(self.n)
+        joint_type = ['revolute'] * self.n
         joint_axis = []
         for i, link in enumerate(self.elinks):
             tr = SE3(link.Ts)
             rpyxyz[i + 1, 0:3] = tr.rpy()
             rpyxyz[i + 1, 3:6] = tr.t
 
-            if link.isrevolute:
-                joint_types[i] = 1.0
-            elif link.isprismatic:
-                joint_types[i] = 0.0
+            if link.isprismatic:
+                joint_type[i] = 'prismatic'
 
             if link.v is None:
                 joint_axis.append("")
@@ -1509,7 +1507,7 @@ class ERobot(BaseERobot):
             f.write('  </joint>\n')
 
             # 1st joint - written separately due to base_link parent
-            if joint_types[0] == 1.0:
+            if joint_type[0] == 'revolute':
                 f.write('  <joint name="joint1" type="continuous">\n')
             else:
                 f.write('  <joint name="joint1" type="prismatic">\n')
@@ -1528,7 +1526,7 @@ class ERobot(BaseERobot):
             f.write('  </joint>\n')
 
             for i in range(1, self.n):
-                if joint_types[i] == 1.0:
+                if joint_type[i] == 'revolute':
                     f.write('  <joint name="joint{}" type="continuous">\n'.format(i + 1))
                 else:
                     f.write('  <joint name="joint{}" type="prismatic">\n'.format(i + 1))
