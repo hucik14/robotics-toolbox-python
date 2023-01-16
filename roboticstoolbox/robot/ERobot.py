@@ -1461,15 +1461,25 @@ class ERobot(BaseERobot):
     def generate_URDF(self):
         rpyxyz = zeros((self.n + 2, 6))
         joint_types = zeros(self.n)
+        joint_axis = []
         for i, link in enumerate(self.elinks):
             tr = SE3(link.Ts)
             rpyxyz[i + 1, 0:3] = tr.rpy()
             rpyxyz[i + 1, 3:6] = tr.t
 
-            for et in link.ets:
-                if et.eta is None:
-                    if et.axis == 'Rz':
-                        joint_types[i] = 1
+            if link.isrevolute:
+                joint_types[i] = 1.0
+            elif link.isprismatic:
+                joint_types[i] = 0.0
+
+            if link.v.axis == 'Rz' or link.v.axis == 'tz':
+                joint_axis.append("0 0 1")
+            elif link.v.axis == 'Ry' or link.v.axis == 'ty':
+                joint_axis.append("0 1 0")
+            elif link.v.axis == 'Rx' or link.v.axis == 'tx':
+                joint_axis.append("1 0 0")
+            else:
+                joint_axis.append("")
 
         # prepare RPYXYZ parameters
         base_rpyxyz = rpyxyz[0, :]
@@ -1513,7 +1523,7 @@ class ERobot(BaseERobot):
                 x=joints_rpyxyz[0, 3],
                 y=joints_rpyxyz[0, 4],
                 z=joints_rpyxyz[0, 5]))
-            f.write('    <axis xyz="0 0 1"/>\n')
+            f.write('    <axis xyz="{}"/>\n'.format(joint_axis[0]))
             f.write('  </joint>\n')
 
             for i in range(1, self.n):
@@ -1532,7 +1542,7 @@ class ERobot(BaseERobot):
                     x=joints_rpyxyz[i, 3],
                     y=joints_rpyxyz[i, 4],
                     z=joints_rpyxyz[i, 5]))
-                f.write('    <axis xyz="0 0 1"/>\n')
+                f.write('    <axis xyz="{}"/>\n'.format(joint_axis[i]))
                 f.write('  </joint>\n')
 
             # end effector
