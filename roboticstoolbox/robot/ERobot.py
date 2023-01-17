@@ -1458,7 +1458,7 @@ class ERobot(BaseERobot):
 
         return urdf.elinks, urdf.name, urdf_string, file_path
 
-    def generate_URDF(self):
+    def generate_URDF(self, filename='robot.urdf'):
         rpyxyz = zeros((self.n + 2, 6))
         joint_type = ['revolute'] * self.n
         joint_axis = []
@@ -1485,7 +1485,7 @@ class ERobot(BaseERobot):
         joints_rpyxyz = rpyxyz[1:self.n + 1, :]
         tool_rpyxyz = rpyxyz[self.n + 1, :]
 
-        with open('robot.urdf', 'w') as f:
+        with open(filename, 'w') as f:
             # write header
             f.write('<?xml version="1.0" ?>\n<robot name="robotRTB">\n\n')
 
