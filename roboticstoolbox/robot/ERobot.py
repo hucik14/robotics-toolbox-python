@@ -1592,9 +1592,7 @@ class ERobot(BaseERobot):
             f.close()
             
         pass
-
-
-
+    
     # --------------------------------------------------------------------- #
 
     def get_path(self, end=None, start=None):
