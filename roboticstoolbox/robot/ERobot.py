@@ -1458,21 +1458,36 @@ class ERobot(BaseERobot):
 
         return urdf.elinks, urdf.name, urdf_string, file_path
 
-    def generate_URDF(self, filename='robot.urdf'):
+    def generate_URDF(self, file_name='robot.urdf'):
+        """
+        Generate a simple URDF file with given robot kinematics
+        :param file_name: name of the output file
+        """
+        # initiate np array to store RPY and XYZ parameters (number of joints + base and end-effector lines)
         rpyxyz = zeros((self.n + 2, 6))
+        # expect all joint variables are revolute joints, prismatics are checked later
         joint_type = ['revolute'] * self.n
+        # initiate a list that stores joint axis directional vector
         joint_axis = []
+
         for i, link in enumerate(self.elinks):
+            # get partial transform of a link
             tr = SE3(link.Ts)
+            # convert rotational part of the matrix to RPY values
             rpyxyz[i + 1, 0:3] = tr.rpy()
+            # save positional vector values
             rpyxyz[i + 1, 3:6] = tr.t
 
+            # check if the joint is prismatic
             if link.isprismatic:
                 joint_type[i] = 'prismatic'
 
+            # check if the link has a joint variable ET in its ET sequence
             if link.v is None:
+                # if no joint variable (base or end-effector frame), save empty value
                 joint_axis.append("")
             else:
+                # obtain joint variable directional axis
                 if link.v.axis == 'Rz' or link.v.axis == 'tz':
                     joint_axis.append("0 0 1")
                 elif link.v.axis == 'Ry' or link.v.axis == 'ty':
@@ -1480,12 +1495,12 @@ class ERobot(BaseERobot):
                 elif link.v.axis == 'Rx' or link.v.axis == 'tx':
                     joint_axis.append("1 0 0")
 
-        # prepare RPYXYZ parameters
+        # prepare RPYXYZ parameters for writing in file
         base_rpyxyz = rpyxyz[0, :]
         joints_rpyxyz = rpyxyz[1:self.n + 1, :]
         tool_rpyxyz = rpyxyz[self.n + 1, :]
 
-        with open(filename, 'w') as f:
+        with open(file_name, 'w') as f:
             # write header
             f.write('<?xml version="1.0" ?>\n<robot name="robotRTB">\n\n')
 
@@ -1525,6 +1540,7 @@ class ERobot(BaseERobot):
             f.write('    <axis xyz="{}"/>\n'.format(joint_axis[0]))
             f.write('  </joint>\n')
 
+            # write 2nd to n joints
             for i in range(1, self.n):
                 if joint_type[i] == 'revolute':
                     f.write('  <joint name="joint{}" type="continuous">\n'.format(i + 1))
@@ -1574,7 +1590,7 @@ class ERobot(BaseERobot):
             f.write('\n</robot>\n')
             # close file
             f.close()
-
+            
         pass
 
 
