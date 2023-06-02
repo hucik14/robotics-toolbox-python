@@ -336,13 +336,13 @@ class Robot(BaseRobot[Link], RobotKinematicsMixin):
         :param file_name: name of the output file
         """
         # initiate np array to store RPY and XYZ parameters (number of joints + base and end-effector lines)
-        rpyxyz = zeros((self.n + 2, 6))
+        rpyxyz = np.zeros((self.n + 2, 6))
         # expect all joint variables are revolute joints, prismatics are checked later
         joint_type = ['revolute'] * self.n
         # initiate a list that stores joint axis directional vector
         joint_axis = []
 
-        for i, link in enumerate(self.elinks):
+        for i, link in enumerate(self.links):
             # get partial transform of a link
             tr = SE3(link.Ts)
             # convert rotational part of the matrix to RPY values
