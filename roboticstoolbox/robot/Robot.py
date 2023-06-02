@@ -330,6 +330,148 @@ class Robot(BaseRobot[Link], RobotKinematicsMixin):
             urdf_filepath=urdf_filepath,
         )
 
+    def generate_URDF(self, file_name='robot.urdf'):
+        """
+        Generate a simple URDF file with given robot kinematics
+        :param file_name: name of the output file
+        """
+        # initiate np array to store RPY and XYZ parameters (number of joints + base and end-effector lines)
+        rpyxyz = zeros((self.n + 2, 6))
+        # expect all joint variables are revolute joints, prismatics are checked later
+        joint_type = ['revolute'] * self.n
+        # initiate a list that stores joint axis directional vector
+        joint_axis = []
+
+        for i, link in enumerate(self.elinks):
+            # get partial transform of a link
+            tr = SE3(link.Ts)
+            # convert rotational part of the matrix to RPY values
+            rpyxyz[i + 1, 0:3] = tr.rpy()
+            # save positional vector values
+            rpyxyz[i + 1, 3:6] = tr.t
+
+            # check if the joint is prismatic
+            if link.isprismatic:
+                joint_type[i] = 'prismatic'
+
+            # check if the link has a joint variable ET in its ET sequence
+            if link.v is None:
+                # if no joint variable (base or end-effector frame), save empty value
+                joint_axis.append("")
+            else:
+                # obtain joint variable directional axis
+                if link.v.axis == 'Rz' or link.v.axis == 'tz':
+                    joint_axis.append("0 0 1")
+                elif link.v.axis == 'Ry' or link.v.axis == 'ty':
+                    joint_axis.append("0 1 0")
+                elif link.v.axis == 'Rx' or link.v.axis == 'tx':
+                    joint_axis.append("1 0 0")
+
+        # prepare RPYXYZ parameters for writing in file
+        base_rpyxyz = rpyxyz[0, :]
+        joints_rpyxyz = rpyxyz[1:self.n + 1, :]
+        tool_rpyxyz = rpyxyz[self.n + 1, :]
+
+        with open(file_name, 'w') as f:
+            # write header
+            f.write('<?xml version="1.0" ?>\n<robot name="robotRTB">\n\n')
+
+            # joints
+            f.write('<!-- KINEMATICS (joints) -->\n')
+
+            # write base
+            f.write('  <joint name="world_joint" type="fixed">\n')
+            f.write('    <parent link="world"/>\n')
+            f.write('    <child link="base_link"/>\n')
+
+            f.write(
+                '    <origin rpy="{roll} {pitch} {yaw}" xyz="{x} {y} {z}"/>\n'.format(
+                    roll=base_rpyxyz[0],
+                    pitch=base_rpyxyz[1],
+                    yaw=base_rpyxyz[2],
+                    x=base_rpyxyz[3],
+                    y=base_rpyxyz[4],
+                    z=base_rpyxyz[5]))
+            f.write('  </joint>\n')
+
+            # 1st joint - written separately due to base_link parent
+            if joint_type[0] == 'revolute':
+                f.write('  <joint name="joint1" type="continuous">\n')
+            else:
+                f.write('  <joint name="joint1" type="prismatic">\n')
+                f.write(
+                    '    <limit effort="10" velocity="1.0" lower="0.0" upper="1.0"/>\n')
+
+            f.write('    <parent link="base_link"/>\n')
+            f.write('    <child link="link1"/>\n')
+            f.write(
+                '    <origin rpy="{roll} {pitch} {yaw}" xyz="{x} {y} {z}"/>\n'.format(
+                    roll=joints_rpyxyz[0, 0],
+                    pitch=joints_rpyxyz[0, 1],
+                    yaw=joints_rpyxyz[0, 2],
+                    x=joints_rpyxyz[0, 3],
+                    y=joints_rpyxyz[0, 4],
+                    z=joints_rpyxyz[0, 5]))
+            f.write('    <axis xyz="{}"/>\n'.format(joint_axis[0]))
+            f.write('  </joint>\n')
+
+            # write 2nd to n joints
+            for i in range(1, self.n):
+                if joint_type[i] == 'revolute':
+                    f.write(
+                        '  <joint name="joint{}" type="continuous">\n'.format(i + 1))
+                else:
+                    f.write('  <joint name="joint{}" type="prismatic">\n'.format(i + 1))
+                    f.write(
+                        '    <limit effort="10" velocity="1.0" lower="0.0" upper="1.0"/>\n')
+
+                f.write('    <parent link="link{}"/>\n'.format(i))
+                f.write('    <child link="link{}"/>\n'.format(i + 1))
+                f.write(
+                    '    <origin rpy="{roll} {pitch} {yaw}" xyz="{x} {y} {z}"/>\n'.format(
+                        roll=joints_rpyxyz[i, 0],
+                        pitch=joints_rpyxyz[i, 1],
+                        yaw=joints_rpyxyz[i, 2],
+                        x=joints_rpyxyz[i, 3],
+                        y=joints_rpyxyz[i, 4],
+                        z=joints_rpyxyz[i, 5]))
+                f.write('    <axis xyz="{}"/>\n'.format(joint_axis[i]))
+                f.write('  </joint>\n')
+
+            # end effector
+            f.write('  <joint name="ee_joint" type="fixed">\n')
+            f.write('    <parent link="link{}"/>\n'.format(self.n))
+            f.write('    <child link="ee_link"/>\n')
+            f.write(
+                '    <origin rpy="{roll} {pitch} {yaw}" xyz="{x} {y} {z}"/>\n'.format(
+                    roll=tool_rpyxyz[0],
+                    pitch=tool_rpyxyz[1],
+                    yaw=tool_rpyxyz[2],
+                    x=tool_rpyxyz[3],
+                    y=tool_rpyxyz[4],
+                    z=tool_rpyxyz[5]))
+            f.write('  </joint>\n')
+
+            # links
+            f.write('\n<!-- DYNAMICS (links) -->\n')
+
+            # write world and base links
+            f.write('  <link name="world"/>\n')
+            f.write('  <link name="base_link"/>\n')
+
+            # write links
+            for i in range(self.n):
+                f.write('  <link name="link{}"/>\n'.format(i + 1))
+
+            # end-effector link
+            f.write('  <link name="ee_link"/>\n')
+
+            f.write('\n</robot>\n')
+            # close file
+            f.close()
+
+        pass
+
     #     # --------------------------------------------------------------------- #
     #     # --------- Utility Methods ------------------------------------------- #
     #     # --------------------------------------------------------------------- #
